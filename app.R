@@ -170,13 +170,117 @@ movieTimeTable <- function (lmovies, time2start, time2end, pub.overlap, pub.time
 }
 
 
+getTimeTableUGC <- function (url) {
+    require(parallel)
+    require(RCurl)
+    require(XML)
+    webpage <- capture.output(htmlTreeParse( readLines(tc <- textConnection(getURL(url)))))
+    webpage <- webpage[grep("progWeek", webpage):grep("  <div class=\"Foot\">", webpage)]
+    progWeek <- c(grep("BoxFilm", webpage), grep("  <div class=\"Foot\">", webpage))
+
+    nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
+        cat(". ")
+        tmp <- webpage[progWeek[i]:(progWeek[i+1]-1)]
+        tmp <- gsub("&apos;", "'", tmp)
+        premiereMovie <- length(grep("<h4 class=\"ColorBlue\">Avant-première</h4>", tmp))>0
+        timeMovie <- sort(unlist(strsplit(gsub("^[ ]*: ", "", tmp[grep("<strong>.*</strong>", tmp)+1]), ", ")))
+        urlMovieTmp <- paste0("http://www.ugc.fr/", gsub(".*<a href=\"(.*)\" class=.*", "\\1", tmp[grep("<a href=\".*\" class=\"ColorBlack\">", tmp)]))
+        urlMovie <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(urlMovieTmp)), encoding = "UTF-8"), encoding = "UTF-8"))
+        detailsMovie <- urlMovie[grep("<div class=\"FilmDetail\">", urlMovie):grep("<p class=\"FilmDetailText Description\">", urlMovie)]
+        detailsMovie <- gsub("&apos;", "'", detailsMovie)
+        if (grep("<h2>", detailsMovie)==grep("</h2>", detailsMovie)) {
+            titleMovie <- gsub(".*<h2>(.*)</h2>.*", "\\1", grep("<h2>.*</h2>", detailsMovie, value = TRUE))
+        } else {
+            rawTitle <- detailsMovie[grep("<h2>", detailsMovie):grep("</h2>", detailsMovie)]
+            titleMovie <- gsub("^[ ]*(.*)[ ]*", "\\1", rawTitle[-grep("[><]", rawTitle)])
+        }
+        runningTimeMovie <- gsub("[ ]*([0-9]*)h([0-9]*)min", "\\1:\\2", detailsMovie[grep("<strong>Durée :</strong>", detailsMovie)+1])
+        typeMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Genre :</strong>", detailsMovie)+1])
+        releaseMovie <- as.Date(gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1]), format = "%d %B %Y")
+        testTitle <- gsub("[ ]*(.*)[ ]*", "\\1", grep(paste0('[^"]', titleMovie, '[^"]'), tmp, value = TRUE))
+        testTitle <- gsub(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", "\\1", testTitle)
+        infoMovie <- gsub("[ ]*(.*)[ ]*", "\\1", gsub(titleMovie, "", testTitle, fixed = TRUE))
+        infoMovie <- gsub("[ ]*-.*", "", infoMovie)
+        langMovie <- gsub("\\^(.*)\\$", "\\1", names(unlist(sapply(c("^VF$", "VFSTF", "VOSTF"), grep, gsub("([^ ]*)[ ]+(.*)", "\\1",infoMovie)))))
+        is3D <- length(grep("3D", gsub("([^ ]*)[ ]+(.*)", "\\2",infoMovie), fixed = TRUE))>0
+        result <- list(paste(titleMovie, paste0("(", langMovie, ifelse(is3D, "-3D)", ")"))), langMovie, is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie))
+        names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
+        return(result)
+    })
+    close(tc)
+    cat("\n")
+    return(timeTable)
+}
+
+
+getTimeTableLille <- function (url) {
+    require(parallel)
+    require(RCurl)
+    require(XML)
+    webpage <- readLines(tc <- textConnection(getURL(url)))
+    webpage <- capture.output(htmlTreeParse(webpage))
+    webpage <- webpage[grep("<h3 id=\"horaires\">", webpage)[1]:grep("<div id=\"footer\">", webpage)]
+    progWeek <- c(grep("title=\"Voir la fiche du film [^\"]*\">", webpage), grep("<div id=\"footer\">", webpage)[1])
+    nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
+        cat(". ")
+        tmpWebpage <- webpage[progWeek[i]:(progWeek[i+1]-1)]
+
+        releaseMovie <- as.Date(gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-sortie", tmpWebpage)+2]), format = "%d/%m/%Y")
+        runningTimeMovie <- paste0("0", gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-duree", tmpWebpage)+2])))
+        if (length(releaseMovie)!=0 & runningTimeMovie!="0") {
+            premiereMovie <- FALSE
+            titleMovie <- gsub("&apos;", "'", gsub(".*>(.*)<.*", "\\1", grep("title=\"Voir la fiche du film [^\"]*\">", tmpWebpage, value = TRUE)))
+            typeMovie <- gsub("&apos;", "'", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("Genre", tmpWebpage)+1]))
+            is3D <- ifelse(length(grep("EN 3D", titleMovie))>0, TRUE, FALSE)
+            titleMovie <- gsub(" EN 3D", "", titleMovie)
+
+            howMuchLang <- grep("Les sÃ©ances en version", tmpWebpage, value = TRUE)
+            langMovie <- lapply(howMuchLang, function (i) {
+                langMovie <- ifelse(length(grep("franÃ§aise", i))>0, "VF", "VOSTF")
+            })
+            if (length(howMuchLang)>1) {
+                timeMovie <- lapply(grep("fc today", tmpWebpage)+1, function (i) {
+                    timeMovie <- gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[i]))
+                })
+                result <- lapply(seq(length(langMovie)), function (i) {
+                    result <- list(paste(titleMovie, paste0("(", langMovie[[i]], ifelse(is3D, "-3D)", ")"))), langMovie[[i]], is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie[[i]]))
+                    names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
+                    return(result)
+                })
+            } else {
+                timeMovie <- gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("fc today", tmpWebpage)+1]))
+                result <- list(paste(titleMovie, paste0("(", langMovie, ifelse(is3D, "-3D)", ")"))), langMovie[[1]], is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie))
+                names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
+                result <- list(result)
+            }
+            sameTimeTables <- sapply(seq(length(howMuchLang)), function (iVersion) {
+                posScheduled <- c(sapply(seq(7), function (iCol) {grep(paste0("<td class=\"col", iCol, " dt-"), tmpWebpage)[iVersion]}), grep("</tbody>", tmpWebpage)[iVersion])
+                timeTables <- lapply(seq(length(posScheduled)-1), function (iDay) {
+                    tmp <- tmpWebpage[posScheduled[iDay]:posScheduled[iDay+1]]
+                    res <- gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmp[grep("<div class=\"fc", tmp)+1]))
+                    return(res)
+                })
+                return(sum(duplicated(timeTables))==length(timeTables)-1)
+            })
+            return(result[sameTimeTables])
+        } else {
+            return(list())
+        }
+    })
+    timeTable <- unlist(timeTable, recursive = FALSE)
+    close(tc)
+    cat("\n")
+    return(timeTable)
+}
+
+
 getUGC <- function () {
     url <- "http://www.ugc.fr/home.html"
     webpage <- readLines(tc <- textConnection(getURL(url)))
     close(tc)
-    # webpage <- webpage[length(webpage)]
     tmpWebpage <- webpage[grep("<div class='Foot'> <div class='InnerFoot'> <h2>TOUS LES CINEMAS</h2>", webpage):length(webpage)]
-    # tmpWebpage <- unlist(strsplit(webpage, "<div class='Foot'> <div class='InnerFoot'> <h2>TOUS LES CINEMAS</h2>", fixed = TRUE))
     webpage <- capture.output(htmlTreeParse(tmpWebpage))
     webpage <- webpage[1:grep("<div class=\"FootNav\">", webpage)]
     listCinemaPage <- c(grep("<a href=", webpage), length(webpage))
@@ -218,39 +322,7 @@ server <- function (input, output, session) {
             nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 10:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
 
             if (difftime(nextUpdate, today)<0) {
-                webpage <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(input$selectCinema)))))
-                webpage <- webpage[grep("progWeek", webpage):grep("  <div class=\"Foot\">", webpage)]
-                progWeek <- c(grep("BoxFilm", webpage), grep("  <div class=\"Foot\">", webpage))
-                nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
-                res <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
-                    tmp <- webpage[progWeek[i]:(progWeek[i+1]-1)]
-                    tmp <- gsub("&apos;", "'", tmp)
-                    premiereMovie <- length(grep("<h4 class=\"ColorBlue\">Avant-première</h4>", tmp))>0
-                    timeMovie <- sort(unlist(strsplit(gsub("^[ ]*: ", "", tmp[grep("<strong>.*</strong>", tmp)+1]), ", ")))
-                    urlMovieTmp <- paste0("http://www.ugc.fr/", gsub(".*<a href=\"(.*)\" class=.*", "\\1", tmp[grep("<a href=\".*\" class=\"ColorBlack\">", tmp)]))
-                    urlMovie <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(urlMovieTmp)), encoding = "UTF-8"), encoding = "UTF-8"))
-                    detailsMovie <- urlMovie[grep("<div class=\"FilmDetail\">", urlMovie):grep("<p class=\"FilmDetailText Description\">", urlMovie)]
-                    detailsMovie <- gsub("&apos;", "'", detailsMovie)
-                    if (grep("<h2>", detailsMovie)==grep("</h2>", detailsMovie)) {
-                        titleMovie <- gsub(".*<h2>(.*)</h2>.*", "\\1", grep("<h2>.*</h2>", detailsMovie, value = TRUE))
-                    } else {
-                        rawTitle <- detailsMovie[grep("<h2>", detailsMovie):grep("</h2>", detailsMovie)]
-                        titleMovie <- gsub("^[ ]*(.*)[ ]*", "\\1", rawTitle[-grep("[><]", rawTitle)])
-                    }
-                    runningTimeMovie <- gsub("[ ]*([0-9]*)h([0-9]*)min", "\\1:\\2", detailsMovie[grep("<strong>Durée :</strong>", detailsMovie)+1])
-                    typeMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Genre :</strong>", detailsMovie)+1])
-                    releaseMovie <- as.Date(gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1]), format = "%d %B %Y")
-                    testTitle <- gsub("[ ]*(.*)[ ]*", "\\1", grep(paste0('[^"]', titleMovie, '[^"]'), tmp, value = TRUE))
-                    testTitle <- gsub(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", "\\1", testTitle)
-                    infoMovie <- gsub("[ ]*(.*)[ ]*", "\\1", gsub(titleMovie, "", testTitle, fixed = TRUE))
-                    infoMovie <- gsub("[ ]*-.*", "", infoMovie)
-                    langMovie <- gsub("\\^(.*)\\$", "\\1", names(unlist(sapply(c("^VF$", "VFSTF", "VOSTF"), grep, gsub("([^ ]*)[ ]+(.*)", "\\1",infoMovie)))))
-                    is3D <- length(grep("3D", gsub("([^ ]*)[ ]+(.*)", "\\2",infoMovie), fixed = TRUE))>0
-                    result <- list(paste(titleMovie, paste0("(", langMovie, ifelse(is3D, "-3D)", ")"))), langMovie, is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie))
-                    names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
-                    return(result)
-                })
-                close(tc)
+                res <- getTimeTableUGC(input$selectCinema)
                 dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
                 return(res)
             } else {
@@ -266,57 +338,7 @@ server <- function (input, output, session) {
             nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 09:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
 
             if (difftime(nextUpdate, today)<0) {
-                webpage <- readLines(tc <- textConnection(getURL(input$selectCinema)))
-                webpage <- capture.output(htmlTreeParse(webpage))
-                webpage <- webpage[grep("<h3 id=\"horaires\">", webpage)[1]:grep("<div id=\"footer\">", webpage)]
-                progWeek <- c(grep("title=\"Voir la fiche du film [^\"]*\">", webpage), grep("<div id=\"footer\">", webpage)[1])
-                nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
-                timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
-                    tmpWebpage <- webpage[progWeek[i]:(progWeek[i+1]-1)]
-                    releaseMovie <- as.Date(gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-sortie", tmpWebpage)+2]), format = "%d/%m/%Y")
-                    runningTimeMovie <- paste0("0", gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-duree", tmpWebpage)+2])))
-                    if (length(releaseMovie)!=0 & runningTimeMovie!="0") {
-                        premiereMovie <- FALSE
-                        titleMovie <- gsub("&apos;", "'", gsub(".*>(.*)<.*", "\\1", grep("title=\"Voir la fiche du film [^\"]*\">", tmpWebpage, value = TRUE)))
-                        typeMovie <- gsub("&apos;", "'", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("Genre", tmpWebpage)+1]))
-                        is3D <- ifelse(length(grep("EN 3D", titleMovie))>0, TRUE, FALSE)
-                        titleMovie <- gsub(" EN 3D", "", titleMovie)
-
-                        howMuchLang <- grep("Les sÃ©ances en version", tmpWebpage, value = TRUE)
-                        langMovie <- lapply(howMuchLang, function (i) {
-                            langMovie <- ifelse(length(grep("franÃ§aise", i))>0, "VF", "VOSTF")
-                        })
-                        if (length(howMuchLang)>1) {
-                            timeMovie <- lapply(grep("fc today", tmpWebpage)+1, function (i) {
-                                timeMovie <- gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[i]))
-                            })
-                            result <- lapply(seq(length(langMovie)), function (i) {
-                                result <- list(paste(titleMovie, paste0("(", langMovie[[i]], ifelse(is3D, "-3D)", ")"))), langMovie[[i]], is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie[[i]]))
-                                names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
-                                return(result)
-                            })
-                        } else {
-                            timeMovie <- gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("fc today", tmpWebpage)+1]))
-                            result <- list(paste(titleMovie, paste0("(", langMovie, ifelse(is3D, "-3D)", ")"))), langMovie[[1]], is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie))
-                            names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
-                            result <- list(result)
-                        }
-                        sameTimeTables <- sapply(seq(length(howMuchLang)), function (iVersion) {
-                            posScheduled <- c(sapply(seq(7), function (iCol) {grep(paste0("<td class=\"col", iCol, " dt-"), tmpWebpage)[iVersion]}), grep("</tbody>", tmpWebpage)[iVersion])
-                            timeTables <- lapply(seq(length(posScheduled)-1), function (iDay) {
-                                tmp <- tmpWebpage[posScheduled[iDay]:posScheduled[iDay+1]]
-                                res <- gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmp[grep("<div class=\"fc", tmp)+1]))
-                                return(res)
-                            })
-                            return(sum(duplicated(timeTables))==length(timeTables)-1)
-                        })
-                        return(result[sameTimeTables])
-                    } else {
-                        return(list())
-                    }
-                })
-                res <- unlist(timeTable, recursive = FALSE)
-                close(tc)
+                res <- getTimeTableLille(input$selectCinema)
                 dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
                 return(res)
             } else {
