@@ -3,12 +3,11 @@
 library(RCurl)
 library(XML)
 library(parallel)
-Sys.setenv("LANGUAGE" = "en")
-options(menu.graphics = FALSE)
-options(encoding = "UTF-8")
-options(stringsAsFactors = FALSE)
 library(xlsx)
+Sys.setenv("LANGUAGE" = "en")
 Sys.setlocale(category = "LC_NUMERIC", locale = "C")
+options(menu.graphics = FALSE, encoding = "UTF-8", stringsAsFactors = FALSE)
+
 
 
 movieCalendar <- function (lmovies, time2start, time2end, pub.overlap, pub.time, wait.time) {
@@ -174,15 +173,22 @@ getTimeTableUGC <- function (url) {
     require(parallel)
     require(RCurl)
     require(XML)
-    webpage <- capture.output(htmlTreeParse( readLines(tc <- textConnection(getURL(url)))))
+    webpage <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(url, .encoding = "utf-8")), encoding = "utf-8"), encoding = "utf-8"))
     webpage <- webpage[grep("progWeek", webpage):grep("  <div class=\"Foot\">", webpage)]
+    webpage <- iconv(webpage, "UTF-8", "UTF-8")
     progWeek <- c(grep("BoxFilm", webpage), grep("  <div class=\"Foot\">", webpage))
 
     nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    if (Sys.info()[["sysname"]] != "Linux") {
+        nbCores <- 1
+    } else {
+        nbCores <- min(detectCores(), nbCores)
+    }
     timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
         cat(". ")
         tmp <- webpage[progWeek[i]:(progWeek[i+1]-1)]
         tmp <- gsub("&apos;", "'", tmp)
+
         premiereMovie <- length(grep("<h4 class=\"ColorBlue\">Avant-première</h4>", tmp))>0
         timeMovie <- sort(unlist(strsplit(gsub("^[ ]*: ", "", tmp[grep("<strong>.*</strong>", tmp)+1]), ", ")))
         urlMovieTmp <- paste0("http://www.ugc.fr/", gsub(".*<a href=\"(.*)\" class=.*", "\\1", tmp[grep("<a href=\".*\" class=\"ColorBlack\">", tmp)]))
@@ -221,8 +227,15 @@ getTimeTableLille <- function (url) {
     webpage <- readLines(tc <- textConnection(getURL(url)))
     webpage <- capture.output(htmlTreeParse(webpage))
     webpage <- webpage[grep("<h3 id=\"horaires\">", webpage)[1]:grep("<div id=\"footer\">", webpage)]
+    webpage <- iconv(webpage, "UTF-8", "UTF-8")
     progWeek <- c(grep("title=\"Voir la fiche du film [^\"]*\">", webpage), grep("<div id=\"footer\">", webpage)[1])
+
     nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    if (Sys.info()[["sysname"]] != "Linux") {
+        nbCores <- 1
+    } else {
+        nbCores <- min(detectCores(), nbCores)
+    }
     timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
         cat(". ")
         tmpWebpage <- webpage[progWeek[i]:(progWeek[i+1]-1)]
