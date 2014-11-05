@@ -325,40 +325,42 @@ server <- function (input, output, session) {
     } else {}
 
     timeTable <- reactive({
-        today <- as.POSIXct(format(Sys.time(), "%Y-%m-%d %H:%M:%S %A", tz = "CET"))
-        if (length(grep("www.ugc.fr", input$selectCinema))>0) {
-            codeCinema <- gsub("http://www.ugc.fr/cinema.html?code=", "", input$selectCinema, fixed = TRUE)
-            lastUpdate <- as.POSIXlt(file.info(paste0("www/timeTable_", codeCinema, ".txt"))[["mtime"]])
-            if (is.na(lastUpdate)) {
-                lastUpdate <- today - 604800*2
-            } else {}
-            oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
-            nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 10:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
+        withProgress(message = "Chargement...", value = NULL, {
+            today <- as.POSIXct(format(Sys.time(), "%Y-%m-%d %H:%M:%S %A", tz = "CET"))
+            if (length(grep("www.ugc.fr", input$selectCinema))>0) {
+                codeCinema <- gsub("http://www.ugc.fr/cinema.html?code=", "", input$selectCinema, fixed = TRUE)
+                lastUpdate <- as.POSIXlt(file.info(paste0("www/timeTable_", codeCinema, ".txt"))[["mtime"]])
+                if (is.na(lastUpdate)) {
+                    lastUpdate <- today - 604800*2
+                } else {}
+                oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
+                nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 10:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
 
-            if (difftime(nextUpdate, today)<0) {
-                res <- getTimeTableUGC(input$selectCinema)
-                dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
-                return(res)
+                if (difftime(nextUpdate, today)<0) {
+                    res <- getTimeTableUGC(input$selectCinema)
+                    dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
+                    return(res)
+                } else {
+                    return(dget(file = paste0("www/timeTable_", codeCinema, ".txt")))
+                }
             } else {
-                return(dget(file = paste0("www/timeTable_", codeCinema, ".txt")))
-            }
-        } else {
-            codeCinema <- gsub("http://www\\.(.*)\\..*", "\\1", input$selectCinema)
-            lastUpdate <- as.POSIXlt(file.info(paste0("www/timeTable_", codeCinema, ".txt"))[["mtime"]])
-            if (is.na(lastUpdate)) {
-                lastUpdate <- today - 604800*2
-            } else {}
-            oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
-            nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 09:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
+                codeCinema <- gsub("http://www\\.(.*)\\..*", "\\1", input$selectCinema)
+                lastUpdate <- as.POSIXlt(file.info(paste0("www/timeTable_", codeCinema, ".txt"))[["mtime"]])
+                if (is.na(lastUpdate)) {
+                    lastUpdate <- today - 604800*2
+                } else {}
+                oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
+                nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 09:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
 
-            if (difftime(nextUpdate, today)<0) {
-                res <- getTimeTableLille(input$selectCinema)
-                dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
-                return(res)
-            } else {
-                return(dget(file = paste0("www/timeTable_", codeCinema, ".txt")))
+                if (difftime(nextUpdate, today)<0) {
+                    res <- getTimeTableLille(input$selectCinema)
+                    dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
+                    return(res)
+                } else {
+                    return(dget(file = paste0("www/timeTable_", codeCinema, ".txt")))
+                }
             }
-        }
+        })
     })
 
     output$whichCinema <- renderUI({
@@ -569,7 +571,6 @@ ui <- shinyUI(fluidPage(
         )
     ),
     headerPanel(h1("Des Films en série!", p("(ou un seul)", style = "font-size: 50%; padding-left: 10px"), style = "padding-top: 10px;"), "Des Films en série!"),
-    progressInit(),
     fluidRow(
         column(12, wellPanel(
             fluidRow(h2("Paramètres", style = "color: RGBa(0,205,102,1)"),
