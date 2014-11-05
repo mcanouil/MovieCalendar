@@ -219,7 +219,7 @@ getTimeTableUGC <- function (url) {
     })
     close(tc)
     cat("\n")
-    }
+    })
     return(timeTable)
 }
 
@@ -292,7 +292,7 @@ getTimeTableLille <- function (url) {
     timeTable <- unlist(timeTable, recursive = FALSE)
     close(tc)
     cat("\n")
-    }
+    })
     return(timeTable)
 }
 
