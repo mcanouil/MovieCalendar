@@ -170,8 +170,6 @@ movieTimeTable <- function (lmovies, time2start, time2end, pub.overlap, pub.time
 
 
 getTimeTableUGC <- function (url) {
-    withProgress(session, min = 1, max = (length(progWeek)-1), {
-    setProgress(message = "Récupération des films et horaires...")
     require(parallel)
     require(RCurl)
     require(XML)
@@ -187,8 +185,7 @@ getTimeTableUGC <- function (url) {
         nbCores <- min(detectCores(), nbCores)
     }
     timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
-        # cat(". ")
-        setProgress(value = i)
+        cat(". ")
         tmp <- webpage[progWeek[i]:(progWeek[i+1]-1)]
         tmp <- gsub("&apos;", "'", tmp)
 
@@ -219,14 +216,11 @@ getTimeTableUGC <- function (url) {
     })
     close(tc)
     cat("\n")
-    })
     return(timeTable)
 }
 
 
 getTimeTableLille <- function (url) {
-    withProgress(session, min = 1, max = (length(progWeek)-1), {
-    setProgress(message = "Récupération des films et horaires...")
     require(parallel)
     require(RCurl)
     require(XML)
@@ -243,8 +237,7 @@ getTimeTableLille <- function (url) {
         nbCores <- min(detectCores(), nbCores)
     }
     timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
-        # cat(". ")
-        setProgress(value = i)
+        cat(". ")
         tmpWebpage <- webpage[progWeek[i]:(progWeek[i+1]-1)]
 
         releaseMovie <- as.Date(gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-sortie", tmpWebpage)+2]), format = "%d/%m/%Y")
@@ -292,7 +285,6 @@ getTimeTableLille <- function (url) {
     timeTable <- unlist(timeTable, recursive = FALSE)
     close(tc)
     cat("\n")
-    })
     return(timeTable)
 }
 
