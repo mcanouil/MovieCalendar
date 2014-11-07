@@ -193,6 +193,7 @@ getTimeTableUGC <- function (url) {
         timeMovie <- sort(unlist(strsplit(gsub("^[ ]*: ", "", tmp[grep("<strong>.*</strong>", tmp)+1]), ", ")))
         urlMovieTmp <- paste0("http://www.ugc.fr/", gsub(".*<a href=\"(.*)\" class=.*", "\\1", tmp[grep("<a href=\".*\" class=\"ColorBlack\">", tmp)]))
         urlMovie <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(urlMovieTmp)), encoding = "UTF-8"), encoding = "UTF-8"))
+        urlMovie <- iconv(urlMovie, "UTF-8", "UTF-8")
         detailsMovie <- urlMovie[grep("<div class=\"FilmDetail\">", urlMovie):grep("<p class=\"FilmDetailText Description\">", urlMovie)]
         detailsMovie <- gsub("&apos;", "'", detailsMovie)
         if (grep("<h2>", detailsMovie)==grep("</h2>", detailsMovie)) {
