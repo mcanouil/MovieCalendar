@@ -37,16 +37,16 @@ movieCalendar <- function (lmovies, time2start, time2end, pub.overlap, pub.time,
         return(iMovie)
     })
 
-    res <- lapply(seq(length(movies)), function (iFilm) {
+    res <- lapply(seq_along(movies), function (iFilm) {
         iSeance <- 1
         planing <- cbind(iFilm, iSeance)
         previousFilms <- NULL
         while (length(previousFilms)!=length(movies)) {
             if (is.null(previousFilms)) {
-                nextFilms <- setdiff(seq(length(movies)), iFilm)
+                nextFilms <- setdiff(seq_along(movies), iFilm)
                 previousFilms <- iFilm
             } else {
-                nextFilms <- setdiff(seq(length(movies)), previousFilms)
+                nextFilms <- setdiff(seq_along(movies), previousFilms)
             }
             whichnextTmp <- lapply(nextFilms, function (iNextFilms) {
                 diffMovie <- movies[[iNextFilms]][, "START"] - movies[[iFilm]][iSeance, "END"]
@@ -258,7 +258,7 @@ getTimeTableLille <- function (url) {
                 timeMovie <- lapply(grep("fc today", tmpWebpage)+1, function (i) {
                     timeMovie <- gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[i]))
                 })
-                result <- lapply(seq(length(langMovie)), function (i) {
+                result <- lapply(seq_along(langMovie), function (i) {
                     result <- list(paste(titleMovie, paste0("(", langMovie[[i]], ifelse(is3D, "-3D)", ")"))), langMovie[[i]], is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie[[i]]))
                     names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
                     return(result)
@@ -269,7 +269,7 @@ getTimeTableLille <- function (url) {
                 names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
                 result <- list(result)
             }
-            sameTimeTables <- sapply(seq(length(howMuchLang)), function (iVersion) {
+            sameTimeTables <- sapply(seq_along(howMuchLang), function (iVersion) {
                 posScheduled <- c(sapply(seq(7), function (iCol) {grep(paste0("<td class=\"col", iCol, " dt-"), tmpWebpage)[iVersion]}), grep("</tbody>", tmpWebpage)[iVersion])
                 timeTables <- lapply(seq(length(posScheduled)-1), function (iDay) {
                     tmp <- tmpWebpage[posScheduled[iDay]:posScheduled[iDay+1]]
@@ -456,7 +456,7 @@ server <- function (input, output, session) {
             wb <- loadWorkbook(file = fileName)
             sheet <- getSheets(wb)[["Horaires"]]
             autoSizeColumn(sheet, colIndex = seq(3))
-            for (iPlanning in seq(length(movies))[-1]) {
+            for (iPlanning in seq_along(movies)[-1]) {
                 where2Start <- sum(sapply(movies[seq(iPlanning-1)], nrow)+2)+1
                 addDataFrame(movies[[iPlanning]], sheet, col.names = TRUE, row.names = TRUE, startRow = where2Start, startColumn = 1)
             }
@@ -467,10 +467,10 @@ server <- function (input, output, session) {
                 wb <- loadWorkbook(file = fileName)
                 sheet <- createSheet(wb, sheetName = "Série_Films")
                 iPlanning = 1
-                addDataFrame( planMovies()[[iPlanning]], sheet, col.names = TRUE, row.names = TRUE, startRow = 1, startColumn = 1)
-                for (iPlanning in seq(length( planMovies()))[-1]) {
+                addDataFrame(planMovies()[[iPlanning]], sheet, col.names = TRUE, row.names = TRUE, startRow = 1, startColumn = 1)
+                for (iPlanning in seq_along(planMovies())[-1]) {
                     where2Start <- sum(sapply(planMovies()[seq(iPlanning-1)], nrow)+2)+1
-                    addDataFrame( planMovies()[[iPlanning]], sheet, col.names = TRUE, row.names = TRUE, startRow = where2Start, startColumn = 1)
+                    addDataFrame(planMovies()[[iPlanning]], sheet, col.names = TRUE, row.names = TRUE, startRow = where2Start, startColumn = 1)
                 }
                 autoSizeColumn(sheet, colIndex = seq(4))
                 saveWorkbook(wb, file = fileName)
