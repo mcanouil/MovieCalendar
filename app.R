@@ -2,12 +2,11 @@
 # library(shinyIncubator)
 library(RCurl)
 library(XML)
-library(parallel)
+# library(parallel)
 library(xlsx)
 Sys.setenv("LANGUAGE" = "en")
 Sys.setlocale(category = "LC_NUMERIC", locale = "C")
 options(menu.graphics = FALSE, encoding = "UTF-8", stringsAsFactors = FALSE)
-
 
 
 movieCalendar <- function (lmovies, time2start, time2end, pub.overlap, pub.time, wait.time) {
@@ -170,9 +169,6 @@ movieTimeTable <- function (lmovies, time2start, time2end, pub.overlap, pub.time
 
 
 getTimeTableUGC <- function (url) {
-    # require(parallel)
-    require(RCurl)
-    require(XML)
     webpage <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(url, .encoding = "utf-8")), encoding = "utf-8"), encoding = "utf-8"))
     webpage <- webpage[grep("progWeek", webpage):grep("  <div class=\"Foot\">", webpage)]
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
@@ -222,9 +218,6 @@ getTimeTableUGC <- function (url) {
 
 
 getTimeTableLille <- function (url) {
-    # require(parallel)
-    require(RCurl)
-    require(XML)
     webpage <- readLines(tc <- textConnection(getURL(url)))
     webpage <- capture.output(htmlTreeParse(webpage))
     webpage <- webpage[grep("<h3 id=\"horaires\">", webpage)[1]:grep("<div id=\"footer\">", webpage)]
