@@ -170,7 +170,7 @@ movieTimeTable <- function (lmovies, time2start, time2end, pub.overlap, pub.time
 
 
 getTimeTableUGC <- function (url) {
-    require(parallel)
+    # require(parallel)
     require(RCurl)
     require(XML)
     webpage <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(url, .encoding = "utf-8")), encoding = "utf-8"), encoding = "utf-8"))
@@ -178,17 +178,17 @@ getTimeTableUGC <- function (url) {
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
     progWeek <- c(grep("BoxFilm", webpage), grep("  <div class=\"Foot\">", webpage))
 
-    nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
-    if (Sys.info()[["sysname"]] != "Linux") {
-        nbCores <- 1
-    } else {
-        nbCores <- min(detectCores(), nbCores)
-    }
-    timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
+    # nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    # if (Sys.info()[["sysname"]] != "Linux") {
+        # nbCores <- 1
+    # } else {
+        # nbCores <- min(detectCores(), nbCores)
+    # }
+    # timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
+    timeTable <- lapply(seq(length(progWeek)-1), function (i) {
         cat(". ")
         tmp <- webpage[progWeek[i]:(progWeek[i+1]-1)]
         tmp <- gsub("&apos;", "'", tmp)
-
         premiereMovie <- length(grep("<h4 class=\"ColorBlue\">Avant-première</h4>", tmp))>0
         timeMovie <- sort(unlist(strsplit(gsub("^[ ]*: ", "", tmp[grep("<strong>.*</strong>", tmp)+1]), ", ")))
         urlMovieTmp <- paste0("http://www.ugc.fr/", gsub(".*<a href=\"(.*)\" class=.*", "\\1", tmp[grep("<a href=\".*\" class=\"ColorBlack\">", tmp)]))
@@ -222,7 +222,7 @@ getTimeTableUGC <- function (url) {
 
 
 getTimeTableLille <- function (url) {
-    require(parallel)
+    # require(parallel)
     require(RCurl)
     require(XML)
     webpage <- readLines(tc <- textConnection(getURL(url)))
@@ -231,16 +231,16 @@ getTimeTableLille <- function (url) {
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
     progWeek <- c(grep("title=\"Voir la fiche du film [^\"]*\">", webpage), grep("<div id=\"footer\">", webpage)[1])
 
-    nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
-    if (Sys.info()[["sysname"]] != "Linux") {
-        nbCores <- 1
-    } else {
-        nbCores <- min(detectCores(), nbCores)
-    }
-    timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
+    # nbCores <- ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    # if (Sys.info()[["sysname"]] != "Linux") {
+        # nbCores <- 1
+    # } else {
+        # nbCores <- min(detectCores(), nbCores)
+    # }
+    # timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
+    timeTable <- lapply(seq(length(progWeek)-1), function (i) {
         cat(". ")
         tmpWebpage <- webpage[progWeek[i]:(progWeek[i+1]-1)]
-
         releaseMovie <- as.Date(gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-sortie", tmpWebpage)+2]), format = "%d/%m/%Y")
         runningTimeMovie <- paste0("0", gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-duree", tmpWebpage)+2])))
         if (length(releaseMovie)!=0 & runningTimeMovie!="0") {
@@ -308,7 +308,7 @@ getUGC <- function () {
     return(as.list(listCinema))
 }
 
-
+dir.create("www")
 if (file.exists("www/listCinema.txt")) {
     listCinema <- dget(file = "www/listCinema.txt")
 } else {
@@ -335,8 +335,7 @@ server <- function (input, output, session) {
                     lastUpdate <- today - 604800*2
                 } else {}
                 oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
-                nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 10:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
-
+                nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 10:00:00 \\2", grep("Wednesday", oneWeek, value = TRUE))) # mercredi
                 if (difftime(nextUpdate, today)<0) {
                     res <- getTimeTableUGC(input$selectCinema)
                     dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
@@ -351,7 +350,7 @@ server <- function (input, output, session) {
                     lastUpdate <- today - 604800*2
                 } else {}
                 oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
-                nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 09:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
+                nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 09:00:00 \\2", grep("Wednesday", oneWeek, value = TRUE))) # mercredi
 
                 if (difftime(nextUpdate, today)<0) {
                     res <- getTimeTableLille(input$selectCinema)
