@@ -301,7 +301,7 @@ getUGC <- function () {
     return(as.list(listCinema))
 }
 
-dir.create("www")
+dir.create("www") # right issues
 if (file.exists("www/listCinema.txt")) {
     listCinema <- dget(file = "www/listCinema.txt")
 } else {
