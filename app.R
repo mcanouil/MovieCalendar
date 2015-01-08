@@ -563,7 +563,7 @@ ui <- shinyUI(fluidPage(
             ")
         )
     ),
-    headerPanel(h1("Des Films en série!", p("(ou un seul)", style = "font-size: 50%; padding-left: 10px"), style = "padding-top: 10px;"), "Des Films en série!"),
+    headerPanel(h1("Des Films en série!", p("(ou un seul)", a("(https://github.com/mcanouil/MovieCalendar)", href = "https://github.com/mcanouil/MovieCalendar", style = "font-size: 50%; color: RGBa(238,180,34,1)"), style = "font-size: 50%; padding-left: 10px"), style = "padding-top: 10px;"), "Des Films en série!"),
     fluidRow(
         column(12, wellPanel(
             fluidRow(h2("Paramètres", style = "color: RGBa(0,205,102,1)"),
