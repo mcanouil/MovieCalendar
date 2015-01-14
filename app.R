@@ -2,7 +2,7 @@
 # library(shinyIncubator)
 library(RCurl)
 library(XML)
-# library(parallel)
+library(parallel)
 library(xlsx)
 Sys.setenv("LANGUAGE" = "en")
 Sys.setlocale(category = "LC_NUMERIC", locale = "C")
