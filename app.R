@@ -174,12 +174,13 @@ getTimeTableUGC <- function (url) {
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
     progWeek <- c(grep("BoxFilm", webpage), grep("  <div class=\"Foot\">", webpage))
 
-    nbCores <- 6 # ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    nbCores <- 4 # ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
     if (Sys.info()[["sysname"]] != "Linux") {
         nbCores <- 1
     } else {
         nbCores <- min(detectCores(), nbCores)
     }
+    print(nbCores)
     timeTable <- mclapply(seq(length(progWeek)-1), mc.cores = nbCores, function (i) {
     # timeTable <- lapply(seq(length(progWeek)-1), function (i) {
         cat(". ")
@@ -224,7 +225,7 @@ getTimeTableLille <- function (url) {
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
     progWeek <- c(grep("title=\"Voir la fiche du film [^\"]*\">", webpage), grep("<div id=\"footer\">", webpage)[1])
 
-    nbCores <- 6 # ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
+    nbCores <- 4 # ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
     if (Sys.info()[["sysname"]] != "Linux") {
         nbCores <- 1
     } else {
