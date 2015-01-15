@@ -169,7 +169,7 @@ movieTimeTable <- function (lmovies, time2start, time2end, pub.overlap, pub.time
 
 
 getTimeTableUGC <- function (url) {
-    webpage <- capture.output(htmlTreeParse(readLines(tc <- textConnection(getURL(url, .encoding = "utf-8")), encoding = "utf-8"), encoding = "utf-8"))
+    webpage <- capture.output(htmlTreeParse(readLines(tc0 <- textConnection(getURL(url, .encoding = "utf-8")), encoding = "utf-8"), encoding = "utf-8"))
     webpage <- webpage[grep("progWeek", webpage):grep("  <div class=\"Foot\">", webpage)]
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
     progWeek <- c(grep("BoxFilm", webpage), grep("  <div class=\"Foot\">", webpage))
@@ -210,16 +210,17 @@ getTimeTableUGC <- function (url) {
         is3D <- length(grep("3D", gsub("([^ ]*)[ ]+(.*)", "\\2",infoMovie), fixed = TRUE))>0
         result <- list(paste(titleMovie, paste0("(", langMovie, ifelse(is3D, "-3D)", ")"))), langMovie, is3D, premiereMovie, releaseMovie, typeMovie, c(runningTimeMovie, timeMovie))
         names(result) <- c("Title", "Language", "3D", "Premiere", "Release", "Type", titleMovie)
+        close(tc)
         return(result)
     })
-    close(tc)
+    close(tc0)
     cat("\n")
     return(timeTable)
 }
 
 
 getTimeTableLille <- function (url) {
-    webpage <- readLines(tc <- textConnection(getURL(url)))
+    webpage <- readLines(tc0 <- textConnection(getURL(url)))
     webpage <- capture.output(htmlTreeParse(webpage))
     webpage <- webpage[grep("<h3 id=\"horaires\">", webpage)[1]:grep("<div id=\"footer\">", webpage)]
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
@@ -272,13 +273,15 @@ getTimeTableLille <- function (url) {
                 })
                 return(sum(duplicated(timeTables))==length(timeTables)-1)
             })
+            close(tc)
             return(result[sameTimeTables])
         } else {
+            close(tc)
             return(list())
         }
     })
     timeTable <- unlist(timeTable, recursive = FALSE)
-    close(tc)
+    close(tc0)
     cat("\n")
     return(timeTable)
 }
