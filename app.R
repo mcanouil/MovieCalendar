@@ -273,10 +273,8 @@ getTimeTableLille <- function (url) {
                 })
                 return(sum(duplicated(timeTables))==length(timeTables)-1)
             })
-            close(tc)
             return(result[sameTimeTables])
         } else {
-            close(tc)
             return(list())
         }
     })
