@@ -4,10 +4,14 @@ library(RCurl)
 library(XML)
 library(parallel)
 library(xlsx)
-Sys.setenv("LANGUAGE" = "en")
-Sys.setlocale(category = "LC_NUMERIC", locale = "C")
-options(menu.graphics = FALSE, encoding = "UTF-8", stringsAsFactors = FALSE)
+# Sys.setenv("LANG" = "fr_FR.UTF-8")
+# Sys.setenv("LANGUAGE" = "fr_FR.UTF-8")
+# Sys.setenv("LC_TIME" = "fr_FR.UTF-8")
+# Sys.setlocale(category = "LC_NUMERIC", locale = "C")
+# Sys.setlocale(category = "LC_TIME", locale = "fr_FR.UTF-8")
+lct <- Sys.getlocale("LC_TIME"); Sys.setlocale("LC_TIME", "C")
 
+options(menu.graphics = FALSE, encoding = "UTF-8", stringsAsFactors = FALSE)
 
 movieCalendar <- function (lmovies, time2start, time2end, pub.overlap, pub.time, wait.time) {
     movies <- lapply(lmovies, function (lmovie) {
@@ -201,7 +205,13 @@ getTimeTableUGC <- function (url) {
         }
         runningTimeMovie <- gsub("[ ]*([0-9]*)h([0-9]*)min", "\\1:\\2", detailsMovie[grep("<strong>Durée :</strong>", detailsMovie)+1])
         typeMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Genre :</strong>", detailsMovie)+1])
-        releaseMovie <- as.Date(gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1]), format = "%d %B %Y")
+        releaseMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1])
+        monthsEN <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+        monthsFR <- c("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+        for (i in seq(12)) {
+            releaseMovie <- gsub(monthsFR[i], monthsEN[i], releaseMovie)
+        }
+        releaseMovie <- as.Date(releaseMovie, format = "%d %B %Y")
         testTitle <- gsub("[ ]*(.*)[ ]*", "\\1", grep(paste0('[^"]', titleMovie, '[^"]'), tmp, value = TRUE))
         testTitle <- gsub(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", "\\1", testTitle)
         infoMovie <- gsub("[ ]*(.*)[ ]*", "\\1", gsub(titleMovie, "", testTitle, fixed = TRUE))
@@ -236,7 +246,8 @@ getTimeTableLille <- function (url) {
     timeTable <- lapply(seq(length(progWeek)-1), function (i) {
         cat(". ")
         tmpWebpage <- webpage[progWeek[i]:(progWeek[i+1]-1)]
-        releaseMovie <- as.Date(gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-sortie", tmpWebpage)+2]), format = "%d/%m/%Y")
+        releaseMovie <- gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-sortie", tmpWebpage)+2])
+        releaseMovie <- as.Date(releaseMovie, format = "%d/%m/%Y")
         runningTimeMovie <- paste0("0", gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-duree", tmpWebpage)+2])))
         if (length(releaseMovie)!=0 & runningTimeMovie!="0") {
             premiereMovie <- FALSE
@@ -312,7 +323,7 @@ if (file.exists("www/listCinema.txt")) {
     dput(listCinema, file = "www/listCinema.txt")
 }
 
-
+# print(format(Sys.time(), "%d %B %Y", tz = "CET"))
 server <- function (input, output, session) {
     movieFiles <- setdiff(list.files("www", full.names = TRUE), "www/listCinema.txt")
     files2Old <- difftime(as.POSIXct(format(Sys.time(), "%Y-%m-%d %H:%M:%S %A", tz = "CET")), as.POSIXct(file.info(movieFiles)[["mtime"]]), units = "days")>=10
@@ -331,6 +342,7 @@ server <- function (input, output, session) {
                 } else {}
                 oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
                 nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 10:00:00 \\2", grep("Wednesday", oneWeek, value = TRUE))) # mercredi
+                # nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 10:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
                 if (difftime(nextUpdate, today)<0) {
                     res <- getTimeTableUGC(input$selectCinema)
                     dput(res, file = paste0("www/timeTable_", codeCinema, ".txt"))
@@ -346,6 +358,7 @@ server <- function (input, output, session) {
                 } else {}
                 oneWeek <- format(seq(lastUpdate, lastUpdate+604800, by = "days"), "%Y-%m-%d %H:%M:%S %A", tz = "CET")[-1]
                 nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 09:00:00 \\2", grep("Wednesday", oneWeek, value = TRUE))) # mercredi
+                # nextUpdate <- as.POSIXct(gsub("([^ ]*) .* ([^ ]*)", "\\1 09:00:00 \\2", grep("mercredi", oneWeek, value = TRUE)))
 
                 if (difftime(nextUpdate, today)<0) {
                     res <- getTimeTableLille(input$selectCinema)
