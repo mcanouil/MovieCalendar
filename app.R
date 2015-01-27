@@ -1,3 +1,11 @@
+#---------------------------------------------------------------------------------
+# Name - app.R
+# Desc - Shiny App designed to plan how to watch several movies in a row without the ads
+# Author - Mickael Canouil
+# Source code - https://github.com/mcanouil/MovieCalendar
+#---------------------------------------------------------------------------------
+
+
 # library(shiny)
 # library(shinyIncubator)
 library(RCurl)
