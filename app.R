@@ -242,7 +242,7 @@ getTimeTableLille <- function (url) {
     webpage <- capture.output(htmlTreeParse(webpage))
     webpage <- webpage[grep("<h3 id=\"horaires\">", webpage)[1]:grep("<div id=\"footer\">", webpage)]
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
-    progWeek <- c(grep("title=\"Voir la fiche du film [^\"]*\">", webpage), grep("<div id=\"footer\">", webpage)[1])
+    progWeek <- c(grep("title=\"Voir la fiche du film [^>]*\">", webpage), grep("<div id=\"footer\">", webpage)[1])
 
     # nbCores <- 4 # ifelse((length(progWeek)-1)>detectCores(), detectCores(), (length(progWeek)-1))
     # if (Sys.info()[["sysname"]] != "Linux") {
