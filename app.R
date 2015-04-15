@@ -259,7 +259,8 @@ getTimeTableLille <- function (url) {
         runningTimeMovie <- paste0("0", gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-duree", tmpWebpage)+2])))
         if (length(releaseMovie)!=0 & runningTimeMovie!="0") {
             premiereMovie <- FALSE
-            titleMovie <- gsub("&apos;", "'", gsub(".*>(.*)<.*", "\\1", grep("title=\"Voir la fiche du film [^\"]*\">", tmpWebpage, value = TRUE)))
+            # titleMovie <- gsub("&apos;", "'", gsub(".*>(.*)<.*", "\\1", grep("title=\"Voir la fiche du film [^>]*\">", tmpWebpage, value = TRUE)))
+            titleMovie <- gsub("&apos;", "'", gsub(".*alt=\"(.*)\" class.*", "\\1", tmpWebpage[grep("title=\"Voir la fiche du film [^>]*\">", tmpWebpage)+1]))
             typeMovie <- gsub("&apos;", "'", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("Genre", tmpWebpage)+1]))
             is3D <- ifelse(length(grep("EN 3D", titleMovie))>0, TRUE, FALSE)
             titleMovie <- gsub(" EN 3D", "", titleMovie)
