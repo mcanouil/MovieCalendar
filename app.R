@@ -198,6 +198,7 @@ getTimeTableUGC <- function (url) {
         cat(". ")
         tmp <- webpage[progWeek[i]:(progWeek[i+1]-1)]
         tmp <- gsub("&apos;", "'", tmp)
+
         premiereMovie <- length(grep("<h4 class=\"ColorBlue\">Avant-première</h4>", tmp))>0
         timeMovie <- sort(unlist(strsplit(gsub("^[ ]*: ", "", tmp[grep("<strong>.*</strong>", tmp)+1]), ", ")))
         urlMovieTmp <- paste0("http://www.ugc.fr/", gsub(".*<a href=\"(.*)\" class=.*", "\\1", tmp[grep("<a href=\".*\" class=\"ColorBlack\">", tmp)]))
@@ -213,7 +214,7 @@ getTimeTableUGC <- function (url) {
         }
         runningTimeMovie <- gsub("[ ]*([0-9]*)h([0-9]*)min", "\\1:\\2", detailsMovie[grep("<strong>Durée :</strong>", detailsMovie)+1])
         typeMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Genre :</strong>", detailsMovie)+1])
-        releaseMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1])
+        releaseMovie <- as.Date(gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1]), format = "%d %B %Y")
         monthsEN <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
         monthsFR <- c("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
         for (i in seq(12)) {
@@ -254,6 +255,7 @@ getTimeTableLille <- function (url) {
     timeTable <- lapply(seq(length(progWeek)-1), function (i) {
         cat(". ")
         tmpWebpage <- webpage[progWeek[i]:(progWeek[i+1]-1)]
+
         releaseMovie <- gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-sortie", tmpWebpage)+2])
         releaseMovie <- as.Date(releaseMovie, format = "%d/%m/%Y")
         runningTimeMovie <- paste0("0", gsub("h", ":", gsub(".*>(.*)<.*", "\\1", tmpWebpage[grep("horaires-duree", tmpWebpage)+2])))
