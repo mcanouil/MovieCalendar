@@ -214,7 +214,7 @@ getTimeTableUGC <- function (url) {
         }
         runningTimeMovie <- gsub("[ ]*([0-9]*)h([0-9]*)min", "\\1:\\2", detailsMovie[grep("<strong>Durée :</strong>", detailsMovie)+1])
         typeMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Genre :</strong>", detailsMovie)+1])
-        releaseMovie <- as.Date(gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1]), format = "%d %B %Y")
+        releaseMovie <- gsub("[ ]*(.*)[ ]*", "\\1", detailsMovie[grep("<strong>Sortie :</strong>", detailsMovie)+1])
         monthsEN <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
         monthsFR <- c("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
         for (i in seq(12)) {
@@ -396,7 +396,9 @@ server <- function (input, output, session) {
             if ("Release7"%in%input$lang3D) {
                 releaseDate <- strptime(iMovie[["Release"]], "%Y-%m-%d")
                 todayDate <- strptime(format(Sys.time(), "%Y-%m-%d"), "%Y-%m-%d")
+                print(iMovie[["Release"]])
                 cond4 <- todayDate-releaseDate>=0 & todayDate-releaseDate<7
+                print(cond4)
             } else {
                 cond4 <- TRUE
             }
