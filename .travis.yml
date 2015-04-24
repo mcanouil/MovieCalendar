@@ -5,9 +5,10 @@ warnings_are_errors: true
 sudo: required
 
 r_packages:
+  - rJava
+  - xlsxjars
   - RCurl
   - XML
-  - parallel
   - xlsx
 
 notifications:
