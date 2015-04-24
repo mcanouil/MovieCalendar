@@ -3,7 +3,7 @@
 language: r
 warnings_are_errors: true
 
-r_binary_packages:
+r_packages:
   - RCurl
   - XML
   - parallel
