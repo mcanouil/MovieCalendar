@@ -1,5 +1,8 @@
 # Sample .travis.yml for R projects from https://github.com/craigcitro/r-travis
 
+before_install:
+    - sudo apt-get install java-1.6.0-openjdk-devel
+
 language: r
 warnings_are_errors: true
 sudo: required
