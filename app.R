@@ -246,18 +246,6 @@ parseMovieUGC <- function (file) {
     }
     releaseMovie <- as.Date(releaseMovie, format = "%d %B %Y")
 
-    # if (grep("<h2>", detailsMovie)==grep("</h2>", detailsMovie)) {
-        # titleMovie <- gsub(".*<h2>(.*)</h2>.*", "\\1", grep("<h2>.*</h2>", detailsMovie, value = TRUE))
-    # } else {
-        # rawTitle <- detailsMovie[grep("<h2>", detailsMovie):grep("</h2>", detailsMovie)]
-        # titleMovie <- gsub("^[ ]*(.*)[ ]*", "\\1", rawTitle[-grep("[><]", rawTitle)])
-    # }
-    # testTitle <- gsub("[ ]*(.*)[ ]*", "\\1", grep(paste0('[^"]', titleMovie, '[^"]'), file, value = TRUE))
-    # testTitle <- gsub(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", "\\1", testTitle)
-    # infoMovie <- gsub("[ ]*(.*)[ ]*", "\\1", gsub(titleMovie, "", testTitle, fixed = TRUE))
-    # infoMovie <- gsub("[ ]*-.*", "", infoMovie)
-    # langMovie <- gsub("\\^(.*)\\$", "\\1", names(unlist(sapply(c("^VF$", "VFSTF", "VOSTF"), grep, gsub("([^ ]*)[ ]+(.*)", "\\1", infoMovie)))))
-    # is3D <- length(grep("3D", gsub("([^ ]*)[ ]+(.*)", "\\2",infoMovie), fixed = TRUE))>0
     titleMovie <- gsub(".*<img src=.*alt=\"(.*)\"/>", "\\1", grep(".*<img src=.*alt=\"(.*)\"/>", file, value = TRUE))
     titleMovie <- gsub("&apos;", "'", titleMovie)
     rawTitle <- gsub(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", "\\1", grep(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", file, value = TRUE))
