@@ -1,7 +1,7 @@
 #---------------------------------------------------------------------------------
 # Name - app.R
 # Desc - Shiny App designed to plan how to watch several movies in a row without the ads
-# Version - 1.0.7
+# Version - 1.0.8
 # Author - Mickael Canouil
 # Source code - https://github.com/mcanouil/MovieCalendar
 #---------------------------------------------------------------------------------
@@ -227,12 +227,11 @@ parseMovieUGC <- function (file) {
     premiereMovie <- length(grep("<h4 class=\"ColorBlue\">Avant-première</h4>", file))>0
     timeMovie <- sort(unlist(strsplit(gsub("^[ ]*: ", "", file[grep("<strong>.*</strong>", file)+1]), ", ")))
     urlMovieTmp <- paste0("http://www.ugc.fr/", gsub(".*<a href=\"(.*)\" class=.*", "\\1", file[grep("<a href=\".*\" class=\"ColorBlack\">", file)]))
-    urlMovie <- htmlTreeParse(file = urlMovieTmp, isURL = TRUE)[3]
+    urlMovie <- htmlTreeParse(file = urlMovieTmp, isURL = TRUE, encoding = "UTF-8")[3]
     urlMovie <- urlMovie[["children"]][["html"]][["body"]]
-    # urlMovie <- urlMovie[[2]][[1]][[5]][[1]][[1]][[2]][[2]]
+    urlMovie <- urlMovie[[2]][[1]][[5]][[1]][[1]][[2]][[2]]
     urlMovie <- capture.output(urlMovie)
 
-    urlMovie <- iconv(urlMovie, "UTF-8", "UTF-8")
     detailsMovie <- urlMovie[grep("<div class=\"FilmDetail\">", urlMovie):grep("<p class=\"FilmDetailText Description\">", urlMovie)]
     detailsMovie <- gsub("&apos;", "'", detailsMovie)
 
@@ -248,8 +247,15 @@ parseMovieUGC <- function (file) {
 
     titleMovie <- gsub(".*<img src=.*alt=\"(.*)\"/>", "\\1", grep(".*<img src=.*alt=\"(.*)\"/>", file, value = TRUE))
     titleMovie <- gsub("&apos;", "'", titleMovie)
-    rawTitle <- gsub(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", "\\1", grep(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", file, value = TRUE))
+
+    posStart <- grep(".*<a href=\".*\" class=\"ColorBlack\">", file)
+    posEnd <- grep("</a>", file)
+    tmpTitle <- paste(file[posStart:posEnd[which(posStart<=posEnd)[1]]], collapse = "")
+    rawTitle <- gsub(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", "\\1", grep(".*<a href=\".*\" class=\"ColorBlack\">(.*)</a>", tmpTitle, value = TRUE))
     rawTitle <- gsub("&apos;", "'", rawTitle)
+    rawTitle <- gsub("(.*)<.*", "\\1", rawTitle)
+    rawTitle <- gsub("^ *(.*[A-Za-z]) *$", "\\1", rawTitle)
+
     infoMovie <- unlist(strsplit(gsub(titleMovie, "", rawTitle), " "))
     langMovie <- gsub("\\^(.*)\\$", "\\1", names(unlist(sapply(c("^VF$", "VFSTF", "VOSTF"), grep, gsub("([^ ]*)[ ]+(.*)", "\\1", infoMovie)))))
     is3D <- length(grep("3D", gsub("([^ ]*)[ ]+(.*)", "\\2",infoMovie), fixed = TRUE))>0
@@ -263,11 +269,14 @@ getTimeTableUGC <- function (url) {
     require(XML)
     webpage <- htmlTreeParse(file = url, isURL = TRUE)[3]
     webpage <- webpage[["children"]][["html"]][["body"]]
-    # webpage <- webpage[[1]][[1]][[5]][[1]][[2]][[3]][[3]]
+
+    webpage <- webpage[[1]][[1]][[5]][[1]][[2]][[3]][[3]]
+
     webpage <- capture.output(webpage)
-    webpage <- webpage[grep("progWeek", webpage):grep("<div class=\"Foot\">", webpage)]
+    # webpage <- webpage[grep("progWeek", webpage):grep("<div class=\"Foot\">", webpage)]
     webpage <- iconv(webpage, "UTF-8", "UTF-8")
-    progWeek <- c(grep("BoxFilm", webpage), grep("<div class=\"Foot\">", webpage))
+    # progWeek <- c(grep("BoxFilm", webpage), grep("<div class=\"Foot\">", webpage))
+    progWeek <- c(grep("BoxFilm", webpage), length(webpage))
     timeTable <- lapply(seq(length(progWeek)-1), function (iMovie) {
         cat(". ")
         nTry <- 0
