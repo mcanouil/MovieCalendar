@@ -6,7 +6,7 @@ parseMovieAllocine <- function (file) {
             grep("([0-9]*)h ([0-9]*)min", file, value = TRUE)
         )
         typeMovie <- paste(gsub(".*>(.*)<.*", "\\1", grep('<span data-ac=\"==.*==\">', file, value = TRUE)), collapse = ";")
-        releaseMovie <- gsub(".*>(.*)<.*", "\\1", grep('<span class=\"hidden-sm\">', file, value = TRUE))
+        releaseMovie <- gsub("^[ ]*", "", file[grep('<div class=\"meta-body-item meta-body-info\">', file)+1])
         monthsEN <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
         monthsFR <- c("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
         for (i in seq_len(12)) {
