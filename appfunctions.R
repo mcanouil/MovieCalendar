@@ -23,7 +23,7 @@ parseMovieAllocine <- function (file) {
                 gsub(
                     ".*>(.*)<.*",
                     "\\1",
-                    grep('fichefilm_gen_cfilm=', file, value = TRUE)
+                    grep('<span class=\"meta-title-link\"', file, value = TRUE)
                 )
             )
         )
