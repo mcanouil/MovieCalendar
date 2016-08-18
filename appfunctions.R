@@ -5,8 +5,8 @@ parseMovieAllocine <- function (file) {
             "\\1:\\2",
             grep("([0-9]*)h ([0-9]*)min", file, value = TRUE)
         )
-        typeMovie <- paste(gsub(".*>(.*)<.*", "\\1", grep('<span data-ac=\"==.*==\">', file, value = TRUE)), collapse = ";")
-        releaseMovie <- gsub("^[ ]*", "", file[grep('<div class=\"meta-body-item meta-body-info\">', file)+1])
+        typeMovie <- NULL # paste(gsub(".*>(.*)<.*", "\\1", file[grep('<div class=\"meta-body-item meta-body-info\">', file)+7]), collapse = ";")
+        releaseMovie <- gsub(".*>(.*)<.*", "\\1", file[grep('<div class=\"meta-body-item meta-body-info\">', file)+2])
         monthsEN <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
         monthsFR <- c("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
         for (i in seq_len(12)) {
@@ -23,7 +23,8 @@ parseMovieAllocine <- function (file) {
                 gsub(
                     ".*>(.*)<.*",
                     "\\1",
-                    grep('<span class=\"meta-title-link\"', file, value = TRUE)
+                    # grep('fichefilm_gen_cfilm=', file, value = TRUE)
+                    grep('<a class=\"meta-title-link\"', file, value = TRUE)
                 )
             )
         )
@@ -91,7 +92,7 @@ getTimeTableAllocine <- function (url) {
     require("XML")
     webpage <- htmlTreeParse(file = url, isURL = TRUE, encoding = "UTF-8")[3]
     webpage <- capture.output(webpage[["children"]][["html"]][["body"]])
-    webpage <- webpage[-seq_len(grep("Horaires et séances", webpage))]
+    # webpage <- webpage[-seq_len(grep("Horaires et séances", webpage))]
     posstart <- grep('<div class="meta ">', webpage)
     posend <- grep('          </figure>', webpage)[-1][seq_along(posstart)]
     posmovie <- cbind(posstart, posend)
